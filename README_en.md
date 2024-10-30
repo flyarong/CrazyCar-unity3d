@@ -18,7 +18,7 @@ English  | &nbsp;[中文](./README.md)
 
 ## overview
 
-**Crazy Car** is an online racing game, its overall structure is：[QFramework](https://github.com/liangxiegame/QFramework) & [Addressable](https://github.com/Unity-Technologies/Addressables-Sample)(Game) + [Spring Boot](https://github.com/spring-projects/spring-boot) & [Mybatis](https://github.com/mybatis/mybatis-3)(Server) + [KCP](https://github.com/l42111996/java-Kcp) / [WebSocket](https://github.com/psygames/UnityWebSocket) (Network)  + [Vue & Element](https://github.com/PanJiaChen/vue-element-admin)(Background) ,with this architecture, developers can complete a customized online game with only a few modifications.
+**Crazy Car** is an online racing game, its overall structure is：[QFramework](https://github.com/liangxiegame/QFramework) & [Addressable](https://github.com/Unity-Technologies/Addressables-Sample)  & [HybridCLR](https://github.com/focus-creative-games/hybridclr)(Game) + [Spring Boot](https://github.com/spring-projects/spring-boot) & [Mybatis](https://github.com/mybatis/mybatis-3)(Server) + [KCP](https://github.com/l42111996/java-Kcp) / [WebSocket](https://github.com/psygames/UnityWebSocket) (Network)  + [Vue & Element](https://github.com/PanJiaChen/vue-element-admin)(Background) ,with this architecture, developers can complete a customized online game with only a few modifications.
 
 The main demonstration functions are: login registration, hot change picture and equipment, time trial, two-person competition, version control (Background), user information management (Background) and other functions.
 
@@ -51,6 +51,8 @@ ID：*(VIP ID：**Tast**；Password：**111111** )*
 
 :blue_book:The resource hot update method is Addressable
 
+♨️Hot repairs:**HybridCLR**
+
 :video_game:Adopt Unity's new version of Input System, support a variety of controllers
 
 :alien:Robot,Robots can compete with players in Time trial
@@ -73,8 +75,48 @@ ID：*(VIP ID：**Tast**；Password：**111111** )*
 
 :roller_coaster: Route planning function, custom route
 
+:star2:Introducing the **Skill System**, allowing players to learn and upgrade various skills, enhancing the depth and strategy of the game. 
+
+### Future Support
+
+:hammer_and_wrench: **Creative Workshop**
+
+- Players can customize tracks and vehicles, such as adding decals, etc..
+
+:building_construction: **Reconstructing the game server based on Actor's ECS architecture** 
+
+- Reconstruct the current server-side game part using the Actor-based ECS architecture. This architecture can improve the performance and maintainability of the game server, make the system more flexible and efficient, and adapt to more expansion needs in the future.
+
+:repeat: **Replay System**
+
+- Implement game replay function, allowing players to replay their own games or watch other players' game recordings.
+
+#### :film_strip: Add Unity's post-processing effects
+
+* Introduce Unity's post-processing effects into the game, such as bloom effect, depth of field, anti-aliasing and color correction, etc. These effects will greatly improve the visual quality of the game screen, making the game look more vivid and realistic, thereby enhancing the player's immersion and overall gaming experience.
+
+:handshake: **Friends System**
+
+- Add friends, private chat, and team up features to enhance social interaction among players.
+
+:art: **UI/UX Optimization**
+
+- Continuously optimize the user interface and user experience to improve overall operational smoothness.
+
+:robot: **AI Optimization**
+
+- Continuously improve AI intelligence and behavior, making it more challenging and engaging.
+
+:lock: **Data Security**
+
+- Strengthen the protection of user data to prevent data breaches and cheating.
+
 ## Connection
 :email: ： TastSong@163.com
+
+**QQ**：577016553 <img src="./SamplePictures/qrcode_1719998390405.jpg" style="zoom:80%;" />
+
+**Video Classroom：**[![image-20240710170059182](./SamplePictures/image-20240710170059182.png)](https://learn.u3d.cn/tutorial/online-racing-game-dev)
 
 ## Sample screenshots
 <div  align="center">  
@@ -94,8 +136,6 @@ ID：*(VIP ID：**Tast**；Password：**111111** )*
 
 
 ## Contributors
-
-[liangxie](https://github.com/liangxieq)
 
 [CherryWhite](https://github.com/cherry-white)
 
@@ -145,12 +185,19 @@ You can submit questions in the  [pull requests](https://github.com/TastSong/Cra
 23. [vue-element-admin: A magical vue admin](https://github.com/PanJiaChen/vue-element-admin)
 23. [Midjourney](https://www.midjourney.com/app/)
 23. [Customizable skybox | 2D 天空 | Unity Asset Store](https://assetstore.unity.com/packages/2d/textures-materials/sky/customizable-skybox-174576)
+23. [Plugins for mobile platforms to enable file downloads in background (github.com)](https://github.com/Unity-Technologies/BackgroundDownload/tree/master)
+23. [HybridCLR is a fully featured, zero-cost, high-performance, low-memory solution for Unity's all-platform native c# hotupdate](https://github.com/focus-creative-games/hybridclr)
+23. [在Unity中制作完整的技能系统（介绍篇） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/513705768)
 
 ## Star History
 
-![Star History Chart](https://api.star-history.com/svg?repos=TastSong/CrazyCar&type=Date)
+![Star History Chart](https://api.star-history.com/svg?repos=TastSong/CrazyCar)
 
+## Sponsor
+
+<a href="https://hellogithub.com/repository/045fda14a27a44c8bb0c06395c93ad7b" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=045fda14a27a44c8bb0c06395c93ad7b&claim_uid=zYZJtDj1XTcwveM" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
 ## License
+
 [MIT](https://github.com/TastSong/CrazyCar/blob/master/LICENSE)
 

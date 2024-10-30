@@ -13,7 +13,7 @@ public class TimeTrialRankUI : MonoBehaviour, IController {
     public TimeTrialRankItem timeTrialRankItem;
     public Transform itemParent;
 
-    private void OnEnable() {
+    private async void OnEnable() {
         StringBuilder sb = new StringBuilder();
         JsonWriter w = new JsonWriter(sb);
         w.WriteObjectStart();
@@ -22,13 +22,13 @@ public class TimeTrialRankUI : MonoBehaviour, IController {
         w.WriteObjectEnd();
         Debug.Log("++++++ " + sb.ToString());
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        this.SendCommand(new ShowPageCommand(UIPageType.LoadingUI, UILevelType.Alart));
-        StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.timeTrialRankUrl,
-            data: bytes,
-            token: this.GetModel<IGameModel>().Token.Value,
-            succData: (data) => {
-                this.GetSystem<IDataParseSystem>().ParseTimeTrialRank(data, UpdateUI);
-            }));
+        UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.LoadingUI, UILevelType.Alart));
+        var result = await this.GetSystem<INetworkSystem>().Post(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.timeTrialRankUrl,
+            token: this.GetModel<IGameModel>().Token.Value, bytes);
+        if (result.serverCode == 200) {
+            this.GetSystem<IDataParseSystem>().ParseTimeTrialRank(result.serverData);
+            UpdateUI();
+        }
     }
 
     private void UpdateUI() {

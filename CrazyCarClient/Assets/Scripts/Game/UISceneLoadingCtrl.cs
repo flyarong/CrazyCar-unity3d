@@ -17,8 +17,7 @@ public class UISceneLoadingCtrl : MonoBehaviour, IController {
         this.GetModel<IGameModel>().SceneLoaded.Value = false;
         progressSlider.value = 0;
         progressText.text = "0%";
-        CoroutineController.manager.StartCoroutine(LoadScene());
-        DontDestroyOnLoad(gameObject);
+        CoroutineController.Instance.StartCoroutine(LoadScene());
     }
 
     private void Update() {
@@ -26,14 +25,17 @@ public class UISceneLoadingCtrl : MonoBehaviour, IController {
     }
 
     private IEnumerator LoadScene() {
-        this.SendCommand(new HidePageByLevelCommand(UILevelType.Main));
-        this.SendCommand(new HidePageByLevelCommand(UILevelType.UIPage));
         this.GetModel<IGameModel>().SceneLoaded.Value = false;
+        this.GetModel<IGameModel>().SceneLoading.Value = true;
+        
+        UIController.Instance.HidePageByLevel(UILevelType.Main);
+        UIController.Instance.HidePageByLevel(UILevelType.UIPage);
         progressSlider.value = 0;
         progressText.text = (int)(progressSlider.value * 100) + "%";
         progressSlider.value = 0.1f;
         progressText.text = (int)(progressSlider.value * 100) + "%";
-        var async = SceneManager.LoadSceneAsync((int)this.GetModel<IGameModel>().LoadingTargetSceneID.Value);
+        AsyncOperation async = SceneManager.LoadSceneAsync((int)this.GetModel<IGameModel>().LoadingTargetSceneID.Value);
+        async.allowSceneActivation = false;
 
         while (timer < minLoadingTime) {
             var maxProgress = (timer / minLoadingTime);
@@ -42,29 +44,34 @@ public class UISceneLoadingCtrl : MonoBehaviour, IController {
             yield return null;
         }
 
-        while (!async.isDone) {
+        //AsyncOperation.progress 属性用于跟踪场景加载进度，其值从 0 到 1 变化。
+        //然而，异步加载的进度最大值实际上只有 0.9。在达到 0.9 时，意味着场景已经加载完毕，但还没有切换过去。
+        while (!async.isDone && async.progress < 0.9f) {
             progressSlider.value = Mathf.Min(async.progress, async.progress);
             progressText.text = (int)(progressSlider.value * 100) + "%";
             yield return null;
         }
-        // 2019加载完场景并不能直接显示
-        Destroy(gameObject);
-        yield return new WaitForSeconds(0.1f);
+        progressSlider.value = 100;
+        progressText.text = "100%";
         this.GetModel<IGameModel>().SceneLoaded.Value = true;
         this.GetModel<IGameModel>().SceneLoading.Value = false;
         
-        if (this.GetModel<IGameModel>().LoadingTargetSceneID == SceneID.Game) {
+        if (this.GetModel<IGameModel>().LoadingTargetSceneID == SceneID.Index) {
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.HomepageUI, UILevelType.Main));
+        } else if (this.GetModel<IGameModel>().LoadingTargetSceneID == SceneID.Game) {
             SelectGameUI();
         }
+        
+        async.allowSceneActivation = true;
     }
     
     private void SelectGameUI() {
-        this.SendCommand(new ShowPageCommand(UIPageType.CommonGameUI, UILevelType.Main));
-        this.SendCommand(new ShowPageCommand(UIPageType.InputSystemPanel, UILevelType.Main));
+        UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.CommonGameUI, UILevelType.Main));
+        UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.InputSystemPanel, UILevelType.Main));
         if (this.GetModel<IGameModel>().CurGameType == GameType.Match) {
-            this.SendCommand(new ShowPageCommand(UIPageType.MatchGameUI, UILevelType.UIPage));
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.MatchGameUI, UILevelType.UIPage));
         } else if (this.GetModel<IGameModel>().CurGameType == GameType.TimeTrial) {
-            this.SendCommand(new ShowPageCommand(UIPageType.TimeTrailGameUI, UILevelType.UIPage));
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.TimeTrailGameUI, UILevelType.UIPage));
         }
     }
 

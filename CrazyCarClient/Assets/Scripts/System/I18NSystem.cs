@@ -16,7 +16,7 @@ public interface II18NSystem : ISystem {
     public Dictionary<string, string> LangMap { get; set; }
     public Dictionary<string, Sprite> FlagsDic { get; set; }
 
-    public UniTaskVoid InitTranslation();
+    public UniTask InitTranslation();
     public string GetText(string key);
     public void RegisterText(I18NText t);
     public void UnregisterText(I18NText t);
@@ -33,19 +33,28 @@ public class I18NSystem : AbstractSystem, II18NSystem {
     private JsonData current_dict;
     private string defaultLang = "zh-cn";
 
-    public async UniTaskVoid InitTranslation() {
-        var result = await Addressables.LoadAssetAsync<TextAsset>(Util.baseLanguagePath + "url.json");
-        JsonData fileNames = JsonMapper.ToObject(result.text);
+    public async UniTask InitTranslation() {
+        var result = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<TextAsset>(Util.baseLanguagePath + "url.json");
+        if (result.Status != AsyncOperationStatus.Succeeded) {
+            Debug.LogError("Load url.json failed");
+            return;
+        }
+        JsonData fileNames = JsonMapper.ToObject(result.Result.text);
         string[] names = ((string)fileNames["FileName"]).Split(',');
         
         for (int i = 0; i < names.Length; i++) {
-            var t = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<TextAsset>(Util.baseLanguagePath + names[i]);
-            JsonData d = JsonMapper.ToObject(t.text);
+            var lanObj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<TextAsset>(Util.baseLanguagePath + names[i]);
+            if (lanObj.Status != AsyncOperationStatus.Succeeded) {
+                continue;
+            }
+            JsonData d = JsonMapper.ToObject(lanObj.Result.text);
             LangMap[(string)d["languageName"]] = (string)d["id"];
             trans[(string)d["id"]] = d;
             string flagIconUrl = Util.baseFlagPath + (string)d["flagName"] + ".png";
-            var flag = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<Sprite>(flagIconUrl);
-            FlagsDic[(string)d["languageName"]] = flag;
+            var flagObj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<Sprite>(flagIconUrl);
+            if (flagObj.Status == AsyncOperationStatus.Succeeded) {
+                FlagsDic[(string)d["languageName"]] = flagObj.Result;
+            }
         }
         InitFinish = true;
 

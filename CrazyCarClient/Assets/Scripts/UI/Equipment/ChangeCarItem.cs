@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -16,14 +17,13 @@ public class ChangeCarItem : MonoBehaviour, IPointerClickHandler, IController {
     public Image selectIamge;
     public EquipInfo equipInfo;
     public Color normalColor;
-    public void SetContent(EquipInfo info) {
+    public async UniTask SetContent(EquipInfo info) {
         equipInfo = info;
-        this.GetSystem<IAddressableSystem>().LoadAsset<GameObject>(Util.GetEquipUrl(equipInfo.rid), (obj) => {
-            if (obj.Status == AsyncOperationStatus.Succeeded) {
-                showImage.sprite = obj.Result.GetComponent<EquipResource>().theIcon;
-                lockGO.SetActiveFast(!equipInfo.isHas);
-            }
-        });
+        var obj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<GameObject>(Util.GetEquipUrl(equipInfo.rid));
+        if (obj.Status == AsyncOperationStatus.Succeeded) {
+            showImage.sprite = obj.Result.GetComponent<EquipResource>().theIcon;
+            lockGO.SetActiveFast(!equipInfo.isHas);
+        }
     }
 
     public void SetUnlockState() {

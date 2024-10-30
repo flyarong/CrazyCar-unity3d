@@ -7,6 +7,8 @@ using UnityEngine.Networking;
 using System;
 using LitJson;
 using System.Text;
+using Cysharp.Threading.Tasks;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 public interface ISocketSystem {
     public void Connect(string url, int port = 0);
@@ -38,9 +40,12 @@ public interface INetworkSystem : ISystem, ISocketSystem {
     public JsonData OnMatchRoomStatusMsg { get; set; }
     public JsonData OnMatchRoomStartMsg { get; set; }
     // http
-    public IEnumerator POSTHTTP(string url, byte[] data = null, string token = null, Action<JsonData> succData = null, Action<int> code = null);
-    public void EnterRoom(GameType gameType, int cid, Action succ = null);
-    public void GetUserInfo(int uid, Action<UserInfo> succ);
+    public UniTask<TaskableAccessResult> Get(string url, string token);
+    public UniTask<TaskableAccessResult> Get(string url);
+    public UniTask<TaskableAccessResult> Post(string url, string token, byte[] body = null);
+    public UniTask<TaskableAccessResult> Post(string url, byte[] body = null);
+    public UniTask<bool> EnterRoom(GameType gameType, int cid);
+    public UniTask<UserInfo> GetUserInfo(int uid);
 }
 
 public class NetworkSystem : AbstractSystem, INetworkSystem {
@@ -89,46 +94,76 @@ public class NetworkSystem : AbstractSystem, INetworkSystem {
     private PlayerStateMsg playerStateMsg = new PlayerStateMsg();
     private PlayerOperatMsg playerOperatMsg = new PlayerOperatMsg();
     private PlayerCompleteMsg playerCompleteMsg = new PlayerCompleteMsg();
+    
+    public async UniTask<TaskableAccessResult> Get(string url, string token) {
+        return await Req(url, "GET", token, null);
+    }
 
-    public IEnumerator POSTHTTP(string url, byte[] data = null, string token = null, Action<JsonData> succData = null, Action<int> code = null) {
-        if (this.GetModel<IGameModel>().StandAlone.Value) {
-            yield break;
-        }
+    public async UniTask<TaskableAccessResult> Get(string url) {
+        return await Req(url, "GET", "", null);
+    }
 
-        using (UnityWebRequest request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST)) {
-            if (data != null) {
-                request.uploadHandler = new UploadHandlerRaw(data);
-            }
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-            request.SetRequestHeader("Accept", "application/json");
-            if (!string.IsNullOrEmpty(token)) {
-                request.SetRequestHeader("Authorization", token);
-            }
+    public async UniTask<TaskableAccessResult> Post(string url, string token, byte[] body = null) {
+        return await Req(url, "POST", token, body);
+    }
 
-            yield return request.SendWebRequest();
+    public async UniTask<TaskableAccessResult> Post(string url, byte[] body = null) {
+        return await Req(url, "POST", "", body);
+    }
 
-            if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError) {
-                Debug.LogError("Is Network Error url = " + url);
-            } else {
-                byte[] results = request.downloadHandler.data;
-                string s = Encoding.UTF8.GetString(results);
-                Debug.Log(url + " : " + s);
-                JsonData d = JsonMapper.ToObject(s);
-                this.SendEvent(new HidePageEvent(UIPageType.LoadingUI));
+    private async UniTask<TaskableAccessResult> Req(string url, string method, string token, byte[] body) {
+        try {
+            using (var request = new UnityWebRequest(url, method)) {
+                request.timeout = 30;
 
-                code?.Invoke((int)d["code"]);
-                if ((int)d["code"] == 200) {
-                    succData?.Invoke(d["data"]);
+                if (method == "POST" && body != null) {
+                    UploadHandler handler = new UploadHandlerRaw(body);
+                    handler.contentType = "application/json";
+                    request.useHttpContinue = false;
+                    request.uploadHandler = handler;
                 }
+
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Accept", "application/json");
+                request.disposeUploadHandlerOnDispose = true;
+                request.disposeDownloadHandlerOnDispose = true;
+                request.disposeCertificateHandlerOnDispose = true;
+                if (!string.IsNullOrEmpty(token)) {
+                    request.SetRequestHeader("Authorization", token);
+                }
+
+                request.downloadHandler = new DownloadHandlerBuffer();
+                Debug.Log("request--->" + request.url);
+
+
+                var response = await request.SendWebRequest().WithCancellation(default);
+                //var response = request;
+                //await UniTask.WaitUntil(() => request.isDone);
+                UIController.Instance.HidePage(UIPageType.LoadingUI);
+                if (response.isNetworkError || response.responseCode != 200) {
+                    return new TaskableAccessResult(null, response.responseCode,
+                        new Exception("Http Access Error Code Return"));
+                }
+
+                byte[] results = request.downloadHandler.data; string s = Encoding.UTF8.GetString(results);
+                return new TaskableAccessResult(s, response.responseCode, null);
             }
+        } catch (Exception e) {
+            Debug.LogError("http" + e);
+            UIController.Instance.HidePage(UIPageType.LoadingUI);
+            if (e is UnityWebRequestException) {
+                UnityWebRequestException ex = e as UnityWebRequestException;
+                return new TaskableAccessResult(null, ex.ResponseCode, e);
+            }
+
+            return new TaskableAccessResult(null, -1, e);
         }
     }
 
     public void Connect(string wsURL = "", string kcpURL = "", int port = 0) {
         string url = "";
         if (netType == NetType.WebSocket) {
-            url = "ws" + this.GetSystem<INetworkSystem>().HttpBaseUrl.Substring(4) + wsURL;
+            url = "ws" + HttpBaseUrl.Substring(4) + wsURL;
         } else if (netType == NetType.KCP) {
             url = kcpURL;
         }
@@ -141,6 +176,10 @@ public class NetworkSystem : AbstractSystem, INetworkSystem {
     }
 
     public void SendMsgToServer(string msg) {
+        if (msg == null || msg == "") {
+            Debug.LogError("SendMsgToServer msg is null or empty");
+            return;
+        }
         curSocketSystem.SendMsgToServer(msg);
     }
 
@@ -234,11 +273,10 @@ public class NetworkSystem : AbstractSystem, INetworkSystem {
         }
     }
 
-    public void EnterRoom(GameType gameType, int cid, Action succ = null) {
+    public async UniTask<bool> EnterRoom(GameType gameType, int cid) {
         if (this.GetModel<IGameModel>().StandAlone.Value) {
             this.GetModel<IRoomMsgModel>().Num = 0;
-            succ?.Invoke();
-            return;
+            return true;
         }
         StringBuilder sb = new StringBuilder();
         JsonWriter w = new JsonWriter(sb);
@@ -252,39 +290,38 @@ public class NetworkSystem : AbstractSystem, INetworkSystem {
         w.WriteObjectEnd();
         Debug.Log("++++++ " + sb.ToString());
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        CoroutineController.manager.StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.enterRoomUrl,
-        data: bytes,
-        token: this.GetModel<IGameModel>().Token.Value,
-        succData: (data) => {
+        var result = await this.GetSystem<INetworkSystem>().Post(url: HttpBaseUrl + RequestUrl.enterRoomUrl,
+            token: this.GetModel<IGameModel>().Token.Value, bytes);
+        if (result.serverCode == 200) {
             if (gameType == GameType.Match) {
                 this.GetModel<IRoomMsgModel>().Num = this.GetModel<IMatchModel>().
-                  MemberInfoDic[this.GetModel<IUserModel>().Uid].index;
+                    MemberInfoDic[this.GetModel<IUserModel>().Uid].index;
             } else {
-                this.GetModel<IRoomMsgModel>().Num = (int)data["num"];
+                this.GetModel<IRoomMsgModel>().Num = (int)result.serverData["num"];
             }
             
-            succ?.Invoke();
-        },
-        code: (code) => {
-            if (code == 423) {
-                if (gameType == GameType.Match) {
-                    WarningAlertInfo alertInfo = new WarningAlertInfo("The match is currently open only to VIP users");
-                    this.SendEvent(new ShowPageEvent(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
-                } else {
-                    WarningAlertInfo alertInfo = new WarningAlertInfo("Do not own this course");
-                    this.SendEvent(new ShowPageEvent(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
-                }
+            return true;
+        } else if (result.serverCode == 423) {
+            if (gameType == GameType.Match) {
+                WarningAlertInfo alertInfo = new WarningAlertInfo("The match is currently open only to VIP users");
+                UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
+            } else {
+                WarningAlertInfo alertInfo = new WarningAlertInfo("Do not own this course");
+                UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
             }
-        }));
+        }
+        return false;
     }
 
-    public void GetUserInfo(int uid, Action<UserInfo> succ) {
+    public async UniTask<UserInfo> GetUserInfo(int uid) {
         if (this.GetModel<IGameModel>().StandAlone.Value) {
-            this.GetSystem<IAddressableSystem>().LoadAsset<TextAsset>(Util.baseStandAlone + Util.standAloneAI, (asset) => {
-                JsonData data = JsonMapper.ToObject(asset.Result.text);
-                succ.Invoke(this.GetSystem<IDataParseSystem>().ParseUserInfo(data));
-            });
-            return;
+            var obj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<TextAsset>(Util.baseStandAlone + Util.standAloneAI);
+            if (obj.Status != AsyncOperationStatus.Succeeded) {
+                Debug.LogError("Load stand alone ai failed");
+                return null;
+            }
+            JsonData data = JsonMapper.ToObject(obj.Result.text);
+            return this.GetSystem<IDataParseSystem>().ParseUserInfo(data);
         }
         StringBuilder sb = new StringBuilder();
         JsonWriter w = new JsonWriter(sb);
@@ -294,15 +331,15 @@ public class NetworkSystem : AbstractSystem, INetworkSystem {
         w.WriteObjectEnd();
         Debug.Log("++++++ " + sb.ToString());
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        CoroutineController.manager.StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.getUserInfo,
-            data: bytes, token: this.GetModel<IGameModel>().Token.Value, succData: (data) => {
-                succ.Invoke(this.GetSystem<IDataParseSystem>().ParseUserInfo(data));
-            }, code: (code) => {
-                if (code != 200)
-                {
-                    Debug.Log("get user info error code = " + code);
-                }
-            }));
+        var resultData =
+            await Post(HttpBaseUrl + RequestUrl.getUserInfo, this.GetModel<IGameModel>().Token.Value, bytes);
+       
+        if (resultData.serverCode == 200) {
+            return this.GetSystem<IDataParseSystem>().ParseUserInfo(resultData.serverData);
+        } else {
+            Debug.Log("get user info error code = " + resultData.serverCode);
+            return null;
+        }
     }
 
     protected override void OnInit() {

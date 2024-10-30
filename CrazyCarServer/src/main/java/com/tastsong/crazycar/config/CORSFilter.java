@@ -15,7 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.core.annotation.Order;
 
-import com.tastsong.crazycar.Util.Util;
 import com.tastsong.crazycar.common.Result;
 import com.tastsong.crazycar.common.ResultCode;
 
@@ -24,7 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Order(1)
-@WebFilter(filterName = "CORSFilter", urlPatterns = {"/v2/*"})
+// @CrossOrigin 与 Filter 二选一，不要同时对一个接口使用
+@WebFilter(filterName = "CORSFilter")
 public class CORSFilter implements Filter{
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -37,18 +37,17 @@ public class CORSFilter implements Filter{
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         log.info("CORSFilter, URL：{}", request.getRequestURI());      
         try {
-            HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setHeader("Access-Control-Allow-Origin", "*");
-            httpResponse.setHeader("Access-Control-Allow-Methods", "PUT, POST, GET, OPTIONS, DELETE");
-            httpResponse.setHeader("Access-Control-Allow-Headers", "content-type, authorization");
-            httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
-            httpResponse.setHeader("Access-Control-Max-Age", "3600");
-            String token = request.getHeader(Util.TOKEN);
-            if(token != null){
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Methods", "PUT, POST, GET, OPTIONS, DELETE");
+            response.setHeader("Access-Control-Allow-Headers", "content-type, authorization");
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+            response.setHeader("Access-Control-Max-Age", "3600");
+            if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+                // 对于OPTIONS预检请求直接返回204状态码，无需继续向下执行
+                response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            } else {
+                // 对于非OPTIONS请求，让请求继续通过filter链条向下执行
                 filterChain.doFilter(servletRequest, servletResponse);
-            } else{
-                log.info("missing Token ：{}", request.getRequestURI());
-                return;
             }
         } catch (Exception e) {
             log.info("missing Token，or interface error：{}", request.getRequestURI());

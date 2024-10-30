@@ -22,7 +22,7 @@ public class TimeTrialResultUI : MonoBehaviour, IController {
     public Button confirmBtn;
     public TimeTrialRankUI timeTrialRankUI;
 
-    private void OnEnable() {
+    private async void OnEnable() {
         timeTrialRankUI.gameObject.SetActiveFast(false);
         StringBuilder sb = new StringBuilder();
         JsonWriter w = new JsonWriter(sb);
@@ -36,21 +36,20 @@ public class TimeTrialResultUI : MonoBehaviour, IController {
         w.WriteObjectEnd();
         Debug.Log("++++++ " + sb.ToString());
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        this.SendCommand(new ShowPageCommand(UIPageType.LoadingUI, UILevelType.Alart));
-        StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.timeTrialResultUrl,
-            data : bytes,
-            token: this.GetModel<IGameModel>().Token.Value,
-            succData: (data) => {
-                this.GetSystem<IDataParseSystem>().ParseTimeTrialResult(data, UpdateUI);
-         }));
+        UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.LoadingUI, UILevelType.Alart));
+        var result = await this.GetSystem<INetworkSystem>().Post(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.timeTrialResultUrl,
+            token: this.GetModel<IGameModel>().Token.Value, bytes);
+        if (result.serverCode == 200) {
+            this.GetSystem<IDataParseSystem>().ParseTimeTrialResult(result.serverData);
+            UpdateUI();
+        }
     }
 
-    private void UpdateUI() {
-        this.GetSystem<IAddressableSystem>().LoadAsset<Sprite>(Util.GetAvatarUrl(this.GetModel<IUserModel>().Aid), (obj) => {
-            if (obj.Status == AsyncOperationStatus.Succeeded) {
-                avatarImage.sprite = Instantiate(obj.Result, transform, false);
-            }
-        });
+    private async void UpdateUI() {
+        var obj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<Sprite>(Util.GetAvatarUrl(this.GetModel<IUserModel>().Aid));
+        if (obj.Status == AsyncOperationStatus.Succeeded) {
+            avatarImage.sprite = Instantiate(obj.Result, transform, false);
+        }
         nameText.text = this.GetModel<IUserModel>().Name.Value;
         victoryImage.sprite = victorySprites[this.GetModel<ITimeTrialModel>().IsWin ? 0 :1];
         breakRankImage.sprite = breakRankSprites[this.GetModel<ITimeTrialModel>().IsBreakRecord ? 0 : 1];

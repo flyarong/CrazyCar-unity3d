@@ -41,6 +41,11 @@ namespace Utils {
         public static string standAloneLogin = "Login.json";
         public static string standAloneTimeTrialDetail = "TimeTrialDetail.json";
         public static string standAloneAI = "AI.json";
+        
+        public static string basePageUrl = "Assets/Prefabs/UIPage/";
+        public static string pageSuffix = ".prefab";
+        
+        public static string miniMapPath = "Assets/RenderTextures/MiniMapRenderTexture.renderTexture";
 
         private static int Port (ServerType serverType)
         {
@@ -68,9 +73,10 @@ namespace Utils {
                 case ServerType.Local:
                     return "localhost";
                 case ServerType.Remote:
-                    return "tastsong.top";
+                    return "crazycar.tastsong.top";
+                    //return "110.40.185.84"; 
                 case ServerType.TestServer:
-                    return "tastsong.xyz";
+                    return "crazycar.tastsong.top";
                 default:
                     return "localhost";
             }
@@ -81,9 +87,9 @@ namespace Utils {
                 case ServerType.Local:
                     return "127.0.0.1";
                 case ServerType.Remote:
-                    return "101.34.205.139";
+                    return "110.40.185.84";
                 case ServerType.TestServer:
-                    return "139.9.103.145";
+                    return "110.40.185.84";
                 default:
                     return "127.0.0.1";
             }
@@ -105,7 +111,7 @@ namespace Utils {
         }
 
         public static Coroutine DelayExecute(Action f, Func<bool> pre) {
-            return CoroutineController.manager.StartCoroutine(DelayExecuting(f, pre));
+            return CoroutineController.Instance.StartCoroutine(DelayExecuting(f, pre));
         }
 
         private static IEnumerator DelayExecuting(Action f, Func<bool> pre) {
@@ -117,7 +123,7 @@ namespace Utils {
         }
 
         public static void DelayExecuteWithSecond(float sec, Action func) {
-            CoroutineController.manager.StartCoroutine(DelayExecutingWithSecond(sec, func));
+            CoroutineController.Instance.StartCoroutine(DelayExecutingWithSecond(sec, func));
         }
 
         private static IEnumerator DelayExecutingWithSecond(float sec, Action func) {

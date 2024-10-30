@@ -17,9 +17,7 @@ public interface IAddressableSystem : ISystem {
     public void SetCallBack(Action<long> OnCheckCompleteNeedUpdate = null, Action OnCompleteDownload = null, Action OnCheckCompleteNoUpdate = null, Action<float, float> OnUpdate = null);
     public void GetDownloadAssets();
     public void DownloadAsset();
-    public void LoadAsset<T>(string path, Action<AsyncOperationHandle<T>> OnLoaded);
-    public UniTaskVoid LoadAssetAsync<T>(string path, Action<AsyncOperationHandle<T>> OnLoaded);
-    public UniTask<T> LoadAssetAsync<T>(string path);
+    public UniTask<AsyncOperationHandle<T>> LoadAssetAsync<T>(string path);
     public void SetUpdateInfo(Action finish);
 }
 
@@ -42,7 +40,7 @@ public class AddressableSystem : AbstractSystem, IAddressableSystem {
     }
 
     public void GetDownloadAssets() {
-        CoroutineController.manager.StartCoroutine(GetTotalDonwloadKeys());
+        CoroutineController.Instance.StartCoroutine(GetTotalDonwloadKeys());
     }
 
     private IEnumerator GetTotalDonwloadKeys() { 
@@ -96,7 +94,7 @@ public class AddressableSystem : AbstractSystem, IAddressableSystem {
     }
 
     public void DownloadAsset() {
-        CoroutineController.manager.StartCoroutine(DownloadAssets());
+        CoroutineController.Instance.StartCoroutine(DownloadAssets());
     }
 
     private IEnumerator DownloadAssets() {
@@ -129,32 +127,21 @@ public class AddressableSystem : AbstractSystem, IAddressableSystem {
         }
     }
 
-    public void SetUpdateInfo(Action finish) {
-       CoroutineController.manager.StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.addressableUrl,
-                succData: (data) => { 
-                    if ((bool)data["is_on"]) {
-                        AddressableInfo.BaseUrl = (string)data["url"];
-                    } else {
-                        AddressableInfo.BaseUrl = Application.streamingAssetsPath;
-                    }
-                    finish.Invoke();
-                }));
+    public async void SetUpdateInfo(Action finish) {
+        var result = await this.GetSystem<INetworkSystem>().Post(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.addressableUrl);
+        if (result.serverCode == 200) {
+            if ((bool)result.serverData["is_on"]) {
+                AddressableInfo.BaseUrl = (string)result.serverData["url"];
+            } else {
+                AddressableInfo.BaseUrl = Application.streamingAssetsPath;
+            }
+        } 
+        finish.Invoke();
     }
     
-    public void LoadAsset<T>(string path, Action<AsyncOperationHandle<T>> OnLoaded) {
-        Addressables.LoadAssetAsync<T>(path).Completed += OnLoaded;
-    }
-    
-    public async UniTaskVoid LoadAssetAsync<T>(string path, Action<AsyncOperationHandle<T>> OnLoaded) {
-        var obj = Addressables.LoadAssetAsync<T>(path);
+    public async UniTask<AsyncOperationHandle<T>> LoadAssetAsync<T>(string path){
+        AsyncOperationHandle<T> obj = Addressables.LoadAssetAsync<T>(path);
         await obj;
-        if (obj.Status == AsyncOperationStatus.Succeeded) {
-            OnLoaded(obj);
-        }
-    }
-    
-    public async UniTask<T> LoadAssetAsync<T>(string path)  {
-        var obj = await Addressables.LoadAssetAsync<T>(path);
         return obj;
     }
 

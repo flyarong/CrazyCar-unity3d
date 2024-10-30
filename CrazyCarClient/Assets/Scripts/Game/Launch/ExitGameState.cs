@@ -6,11 +6,11 @@ public class ExitGameState: AbstractState<LaunchStates, Launch>, IController {
     }
 
     public override void OnEnter() {
-        InfoConfirmInfo info = new InfoConfirmInfo(content: "游戏初始化失败", 
+        InfoConfirmInfo info = new InfoConfirmInfo(content: "游戏初始化失败, 是否退出游戏?", 
             success: () => {
                 Application.Quit();
-            }, type: ConfirmAlertType.Single);
-        this.SendCommand(new ShowPageCommand(UIPageType.InfoConfirmAlert, UILevelType.Alart, info));
+            }, type: ConfirmAlertType.Double);
+        UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.InfoConfirmAlert, UILevelType.Alart, info));
        
     }
 

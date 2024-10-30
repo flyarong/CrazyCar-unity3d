@@ -23,9 +23,11 @@
 
 1. 用**Unity**(2021.3.9及以上)打开**CrazyCar -> CrazyCarClient**项目；
 
+1. 由于项目使用了**HybridCLR**，所以先配置项目的**IL2CPP**：打开菜单**HybridCLR/Installer**， 点击`安装`按钮进行安装，具体操作可以查看[HybridCLR (code-philosophy.com)](https://hybridclr.doc.code-philosophy.com/docs/intro)；**Assets->HotUpdate**文件夹为热更文件夹，热更的DLL打包好会放入**Assets->HotUpdateDll**，这些打包的时候都已经封装好了，直接执行菜单`Build/Remote`
+
 2. 在**Unity**中设置**Login**场景中的**NetworkController**，设置成**Local**(当然你不愿意部署服务器，也可以使用**Remote**，那就可以跳过下面所有的步骤)；
 
-3. 启动**Mysql**，并运行**CrazyCar -> CrazyCarDB**中的**CrazyCar.sql**脚本，部署数据库，注意Mysql账号和密码需要和[配置文件](./CrazyCarServer/src/main/resources/application-prod.properties)保持一致
+3. 启动**Mysql**，并运行**CrazyCar -> CrazyCarServer -> src -> main -> resources**中的**data.sql**脚本，部署数据库，注意Mysql账号和密码需要和[配置文件](./CrazyCarServer/src/main/resources/application-prod.properties)保持一致
 
 4. 配置Java环境(JDK17)：[官网下载JDK17](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html) *(win10请下载exe,Mac下载dmg**不要**下载zip自己配置)*-->配置系统环境变量  [详细教程](https://www.runoob.com/java/java-environment-setup.html)
 
@@ -47,17 +49,16 @@
 > 2. 游戏支持单机模式，如果你没有服务器，也可以进行打版测试(直接Build出版本就行)
 > 2. [Apifox](https://www.apifox.cn/apidoc/shared-f1aa2fc5-8e30-46a8-9218-6c1cb96da3b7)接口测试分享
 
-10. 安装[nodejs](https://nodejs.org/en/)，使用VScode打开文件夹：CrazyCarBackground，然后在终端运行npm install安装依赖，最后使用npm run dev运行即可 (此模块按需求部署即可，[详细操作文档](https://panjiachen.gitee.io/vue-element-admin-site/zh/guide/))
+10. 安装[nodejs](https://nodejs.org/en/) 16 ，使用VScode打开文件夹：CrazyCarBackground，然后在终端运行**npm install**安装依赖，最后使用**npm run dev**运行即可 (此模块按需求部署即可，[详细操作文档](https://panjiachen.gitee.io/vue-element-admin-site/zh/guide/) ,**不要使用nodejs18及其以上版本，使用16**)
 
 ## 环境版本
 
-1. Unity 2021.3.12
+1. Unity 2021.3.9 f1c1
 2. VS 2019
-4. JDK 17
+4. JDK 17  *可高不可低*
 5. MySQL 8.0.26
-6. Tomcat 8.0.52
-8. Nginx  1.20.1
-8. Nodejs 16.16.0
+8. Nginx  1.20.1 *用户部署热更资源*
+8. Nodejs 16.16.0  **不要使用18以上版本**
 
 ## 环境配置
 
@@ -65,7 +66,7 @@
 
   ```mermaid
   graph LR
-  start-->购买服务器-->配置Java环境-->配置Web服务器(Tomcat)-->配置Mysql
+  start-->购买服务器-->配置Java环境-->配置Web服务器(Nginx)-->配置Mysql
   ```
 
   
@@ -74,12 +75,12 @@
 
   ```mermaid
   graph LR
-  start-->配置Java环境-->配置Maven环境-->配置Web服务器(Tomcat)-->配置Mysql-->配置VScode开发环境-->安装Unity
+  start-->配置Java环境-->配置Maven环境-->配置Mysql-->配置VScode开发环境-->安装Unity
   ```
 
   
 
-* 配置服务器基本属性a
+* 配置服务器基本属性
 
   1. 购买云服务器 [华为云](https://www.huaweicloud.com/?locale=zh-cn)
 
@@ -87,7 +88,7 @@
 
 ## 游戏引擎
 
-**Unity 2021.3.12 及以上**
+**Unity 2021.3.9 及以上**
 
 ## 添加新的热更类型
 
@@ -101,6 +102,17 @@
 6. 点击**Build -> New Build**，进行生成增量包  (请自行百度**Addressable**了解生成新包和增量包的区别)
 7. 将**CrazyCar\CrazyCar\Assets\StreamingAssets**下生成的包放入**CrazyCar\CrazyCarServer\src\main\webapp**重新生成**War/Jar**包发布到服务端即可
 7. 具体分组的参数设置可以查看[此文章](./ProjectOptimization/Addressable.md)
+
+## 热修复
+
+![image-20231127091759199](./SamplePictures/hot_fix.png)
+
+1. 所有的热更脚本需要放入，**Project->HotUpdate**文件夹中
+2. 需要热更的UI，需要拖入**Addressable**的**WaitingHot**分组中，如**LoginU**
+3. 然后点击**Windows->Build->HotFix**
+4. 将**Project->StreamingAssets**中的对应的资源放入**CDN**或者**热更服务器**中即可
+
+*点击**HotFix**，首先会自动的执行**HybridCLR**资源整理，然后替换**Project-->HotUpdateDll**下的**HotUpdate.dll.bytes**，然后再进行**Addressable**资源打包，这一切都是自动化的，无需手动修改，至于为什么要替换**HotUpdate.dll.bytes**，需要自己去看一下**HybridCLR**的文档。*
 
 ## 添加头像
 
@@ -203,3 +215,12 @@
    * 每个**Guidance**都需要新建一个**Material**(复制一份现有的**AvatarGuidanceMat**重命名就可以)
    
    *注：完成标识符为**UserModel**中的**IsCompleteGuidance**，完成条件为点击**计时赛按钮***
+   
+   ## 添加新技能
+   
+   整体设计方案参考：[在Unity中制作完整的技能系统（介绍篇） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/513705768)
+   
+   1. 在**CrazyCarClient\Assets\AB\Skill\SkillData.json**下添加对应技能配置，参数意义可以参考**SkillData.cs**
+   2. 在**CrazyCarClient\Assets\AB\Skill\SkillIcon**和**CrazyCarClient\Assets\AB\Skill\SkillPrefab**下添加对应资源
+   3. 技能指示器插件虽然已经集成，但是不建议在赛车游戏中加入，**SkillData.skillIndicator**为空就行
+   4. 需要在**InputSystemPanel.prefab**和**InputSystemPanel.cs**添加新的技能按钮，操作的数值**value**就是技能**id**

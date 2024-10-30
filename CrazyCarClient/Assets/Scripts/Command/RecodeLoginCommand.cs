@@ -6,12 +6,12 @@ using QFramework;
 
 public class RecodeLoginCommand : AbstractCommand {
     protected override void OnExecute() {
-        CoroutineController.manager.StartCoroutine(Util.GetPlace((place) => {
+        CoroutineController.Instance.StartCoroutine(Util.GetPlace((place) => {
             RecodeLogin(place);
         }));
     }
 
-    private void RecodeLogin(string place) {
+    private async void RecodeLogin(string place) {
         StringBuilder sb = new StringBuilder();
         JsonWriter w = new JsonWriter(sb);
         w.WriteObjectStart();
@@ -24,10 +24,7 @@ public class RecodeLoginCommand : AbstractCommand {
         w.WriteObjectEnd();
         Debug.Log("++++++ " + sb.ToString());
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        CoroutineController.manager.StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.recodeLogin,
-            data: bytes, succData: (data) => {
-            }, code: (code) => {
-       
-            }));
+        var result = await this.GetSystem<INetworkSystem>().Post(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.recodeLogin,
+            token: this.GetModel<IGameModel>().Token.Value, bytes);
     }
 }

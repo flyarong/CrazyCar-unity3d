@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Utils;
 using QFramework;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 public class TimeTrialDetailUI : MonoBehaviour, IController {
     public TimeTrialItem timeTrialItem;
@@ -13,16 +14,22 @@ public class TimeTrialDetailUI : MonoBehaviour, IController {
 
     private async void OnEnable() {
         if (this.GetModel<IGameModel>().StandAlone.Value) {
-            TextAsset ta = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<TextAsset>(Util.baseStandAlone + Util.standAloneTimeTrialDetail);
-            JsonData data = JsonMapper.ToObject(ta.text);
-            this.GetSystem<IDataParseSystem>().ParseTimeTrialClassData(data, UpdateUI);
+            var obj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<TextAsset>(Util.baseStandAlone + Util.standAloneTimeTrialDetail);
+            if (obj.Status != AsyncOperationStatus.Succeeded) {
+                Debug.LogError("Load TimeTrialDetail failed");
+                return;
+            }
+            JsonData data = JsonMapper.ToObject(obj.Result.text);
+            this.GetSystem<IDataParseSystem>().ParseTimeTrialClassData(data);
+            UpdateUI();
         } else {
-            this.SendCommand(new ShowPageCommand(UIPageType.LoadingUI, UILevelType.Alart));
-            StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.timeTrialDetailUrl,
-               token: this.GetModel<IGameModel>().Token.Value,
-               succData: (data) => {
-                   this.GetSystem<IDataParseSystem>().ParseTimeTrialClassData(data, UpdateUI);
-               }));
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.LoadingUI, UILevelType.Alart));
+            var result = await this.GetSystem<INetworkSystem>().Post(url: this.GetSystem<INetworkSystem>().HttpBaseUrl + RequestUrl.timeTrialDetailUrl,
+               token: this.GetModel<IGameModel>().Token.Value);
+            if (result.serverCode == 200) {
+                this.GetSystem<IDataParseSystem>().ParseTimeTrialClassData(result.serverData);
+                UpdateUI();
+            } 
         }
     }
 
@@ -38,7 +45,7 @@ public class TimeTrialDetailUI : MonoBehaviour, IController {
     private void Start() {
         closeBtn.onClick.AddListener(() => {
             this.GetSystem<ISoundSystem>().PlaySound(SoundType.Close);
-            this.SendCommand(new ShowPageCommand(UIPageType.HomepageUI));
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.HomepageUI));
             gameObject.SetActiveFast(false);
         });
     }

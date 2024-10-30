@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -29,10 +30,10 @@ public class AvatarItem : MonoBehaviour, IPointerClickHandler, IController {
                     fail: () => {
                         Debug.Log("放弃购买");
                     });
-                this.SendCommand(new ShowPageCommand(UIPageType.InfoConfirmAlert, UILevelType.Alart, info));
+                UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.InfoConfirmAlert, UILevelType.Alart, info));
             } else {
                 WarningAlertInfo alertInfo = new WarningAlertInfo(string.Format(this.GetSystem<II18NSystem>().GetText("This head needs {0} star"), avatarInfo.star));
-                this.SendCommand(new ShowPageCommand(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
+                UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
             }
         }
     }
@@ -41,13 +42,12 @@ public class AvatarItem : MonoBehaviour, IPointerClickHandler, IController {
         lockImage.gameObject.SetActiveFast(!avatarInfo.isHas);
     }
 
-    public void SetContent(AvatarInfo info) {
+    public async UniTask SetContent(AvatarInfo info) {
         avatarInfo = info;
-        this.GetSystem<IAddressableSystem>().LoadAsset<Sprite>(Util.GetAvatarUrl(avatarInfo.aid), (obj) => {
-            if (obj.Status == AsyncOperationStatus.Succeeded) {
-                avatarImage.sprite = Instantiate(obj.Result, transform, false);
-            }
-        });
+        var obj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<Sprite>(Util.GetAvatarUrl(avatarInfo.aid));
+        if (obj.Status == AsyncOperationStatus.Succeeded) {
+            avatarImage.sprite = Instantiate(obj.Result, transform, false);
+        }
         lockImage.gameObject.SetActiveFast(!avatarInfo.isHas);
         this.RegisterEvent<UnlockAvatarEvent>(OnUnlockAvatar).UnRegisterWhenGameObjectDestroyed(gameObject);
     }

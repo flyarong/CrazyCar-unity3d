@@ -13,13 +13,14 @@
 </div>
 
 
+
 中文  | &nbsp;[English](./README_en.md)
 
 ------
 
 ## 简介
 
-**Crazy Car**是一款联机赛车游戏，她的整体架构为：[QFramework](https://github.com/liangxiegame/QFramework) & [Addressable](https://github.com/Unity-Technologies/Addressables-Sample)(游戏端) + [Spring Boot](https://github.com/spring-projects/spring-boot) & [Mybatis](https://github.com/mybatis/mybatis-3)(服务端) + [KCP](https://github.com/l42111996/java-Kcp) / [WebSocket](https://github.com/psygames/UnityWebSocket) (网络)  + [Vue & Element](https://github.com/PanJiaChen/vue-element-admin)(后台)，借助于此架构，开发者只要稍作修改就可完成一款定制化的网络联机游戏。
+**Crazy Car**是一款联机赛车游戏，她的整体架构为：[QFramework](https://github.com/liangxiegame/QFramework) & [Addressable](https://github.com/Unity-Technologies/Addressables-Sample) & [HybridCLR](https://github.com/focus-creative-games/hybridclr)(游戏端) + [Spring Boot](https://github.com/spring-projects/spring-boot) & [Mybatis](https://github.com/mybatis/mybatis-3)(服务端) + [KCP](https://github.com/l42111996/java-Kcp) / [WebSocket](https://github.com/psygames/UnityWebSocket) (网络)  + [Vue & Element](https://github.com/PanJiaChen/vue-element-admin)(后台)，借助于此架构，开发者只要稍作修改就可完成一款定制化的网络联机游戏。
 
 主要提供的演示功能有：登录注册、热更头像与装备、计时赛、双人比赛、版本控制(后台)、用户信息管理(后台)等功能。
 
@@ -55,6 +56,8 @@ ID：*(VIP账号 ：**Tast**；密码：**111111** )*
 
 :blue_book:资源热更新方式为Addressable
 
+♨️热修复使用:**HybridCLR**
+
 :video_game:采用Unity新版本Input System，支持多款手柄
 
 :alien:机器人，计时赛中机器人可与玩家共同竞技
@@ -77,10 +80,50 @@ ID：*(VIP账号 ：**Tast**；密码：**111111** )*
 
 :roller_coaster: 路线规划功能，自定义路线
 
+:star2: 引入**技能系统**，让玩家能够学习和升级各种技能，增强游戏深度和策略性。
+
+### Future Support
+
+:hammer_and_wrench: **创意工坊**
+
+- 玩家可以自定义赛道和车辆，例如添加贴花等。
+
+:building_construction: **基于Actor的ECS架构重构游戏服务器**
+
+- 使用基于Actor的ECS架构重构当前的服务端游戏部分。这种架构能够提高游戏服务器的性能和可维护性，使系统更加灵活和高效，适应未来更多的扩展需求。
+
+:repeat: **回放系统**
+
+- 实现游戏回放功能，允许玩家回放自己的比赛或观看其他玩家的比赛录像。
+
+#### :film_strip: 增加Unity的后期处理特效
+
+* 在游戏中引入Unity的后期处理特效，如泛光效果、景深、抗锯齿和颜色校正等。这些特效将大幅提升游戏画面的视觉质量，使游戏看起来更加生动和逼真，从而增强玩家的沉浸感和整体游戏体验。
+
+:handshake: **好友系统**
+
+- 添加好友、私聊、组队功能，增强玩家社交互动。
+
+:art: **UI/UX优化**
+
+- 不断优化用户界面和用户体验，提升整体操作流畅度。
+
+:robot: **AI优化**
+
+- 不断优化AI的智能和行为，使其更具挑战性和趣味性。
+
+:lock: **数据安全**
+
+- 加强用户数据的安全保护，防止数据泄露和作弊行为。
+
 ------
 
 ## 联系
 :email: ： TastSong@163.com
+
+**QQ群**：577016553 <img src="./SamplePictures/qrcode_1719998390405.jpg" style="zoom:80%;" />
+
+**视频课堂：**[![image-20240710170059182](./SamplePictures/image-20240710170059182.png)](https://learn.u3d.cn/tutorial/online-racing-game-dev)
 
 ------
 
@@ -105,13 +148,11 @@ ID：*(VIP账号 ：**Tast**；密码：**111111** )*
 
 ## 贡献者
 
-[liangxie](https://github.com/liangxieq)
-
 [CherryWhite](https://github.com/cherry-white)
 
 欢迎任何形式的贡献，你可以用 [pull requests](https://github.com/TastSong/CrazyCar/pulls) 或 [issues](https://github.com/TastSong/CrazyCar/issues) 的方式提交任何想法。
 
-:seedling: 当然 **Crazy Car** 还很年轻，有很多不足，但请相信，它会不停向前:running:
+:seedling: 当然 **Crazy Car** 还很年轻，有很多不足，但请相信，它会不停向前​ :running:
 
 ------
 
@@ -159,13 +200,20 @@ ID：*(VIP账号 ：**Tast**；密码：**111111** )*
 10. [vue-element-admin: A magical vue admin](https://github.com/PanJiaChen/vue-element-admin)
 10. [Midjourney](https://www.midjourney.com/app/)
 10. [Customizable skybox | 2D 天空 | Unity Asset Store](https://assetstore.unity.com/packages/2d/textures-materials/sky/customizable-skybox-174576)
+10. [Plugins for mobile platforms to enable file downloads in background (github.com)](https://github.com/Unity-Technologies/BackgroundDownload/tree/master)
+10. [focus-creative-games/hybridclr: HybridCLR是一个特性完整、零成本、高性能、低内存的Unity全平台原生c#热更方案](https://github.com/focus-creative-games/hybridclr)
+10. [在Unity中制作完整的技能系统（介绍篇） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/513705768)
 
 ------
 
 
 ## Star History
 
-![Star History Chart](https://api.star-history.com/svg?repos=TastSong/CrazyCar&type=Date)
+![Star History Chart](https://api.star-history.com/svg?repos=TastSong/CrazyCar)
+
+## 赞助
+
+<a href="https://hellogithub.com/repository/045fda14a27a44c8bb0c06395c93ad7b" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=045fda14a27a44c8bb0c06395c93ad7b&claim_uid=zYZJtDj1XTcwveM" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
 
 ## 证书

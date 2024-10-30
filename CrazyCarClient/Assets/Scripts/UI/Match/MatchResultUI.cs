@@ -26,7 +26,7 @@ public class MatchResultUI : MonoBehaviour, IController {
         }
     }
 
-    private void FetchData() {
+    private async void FetchData() {
         StringBuilder sb = new StringBuilder();
         JsonWriter w = new JsonWriter(sb);
         w.WriteObjectStart();
@@ -39,14 +39,13 @@ public class MatchResultUI : MonoBehaviour, IController {
         w.WriteObjectEnd();
         Debug.Log("++++++ " + sb.ToString());
         byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        this.SendCommand(new ShowPageCommand(UIPageType.LoadingUI, UILevelType.Alart));
-        StartCoroutine(this.GetSystem<INetworkSystem>().POSTHTTP(url: this.GetSystem<INetworkSystem>().HttpBaseUrl +
-            RequestUrl.matchResultUrl,
-            data: bytes,
-            token: this.GetModel<IGameModel>().Token.Value,
-            succData: (data) => {
-                this.GetSystem<IDataParseSystem>().ParseMatchRank(data, UpdateUI);
-            }));
+        UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.LoadingUI, UILevelType.Alart));
+        var result = await this.GetSystem<INetworkSystem>().Post(url: this.GetSystem<INetworkSystem>().HttpBaseUrl +
+                          RequestUrl.matchResultUrl,  token: this.GetModel<IGameModel>().Token.Value,bytes);
+        if (result.serverCode == 200) {
+            this.GetSystem<IDataParseSystem>().ParseMatchRank(result.serverData);
+            UpdateUI();
+        }
     }
 
     private void Start() {

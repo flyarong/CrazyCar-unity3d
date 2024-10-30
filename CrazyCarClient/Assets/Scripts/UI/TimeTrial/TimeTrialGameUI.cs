@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Utils;
 using System;
+using Cysharp.Threading.Tasks;
 using QFramework;
 
 public class TimeTrialGameUI : MonoBehaviour, IController {
@@ -36,7 +37,8 @@ public class TimeTrialGameUI : MonoBehaviour, IController {
         this.RegisterEvent<EndTimeTrialEvent>(OnEndTimeTrial).UnRegisterWhenGameObjectDestroyed(gameObject);
     }
 
-    private void MakeAI(){
+    private async UniTaskVoid MakeAI(){
+        await UniTask.WaitForFixedUpdate();
         AIInfo aiInfo = new AIInfo();
         aiInfo.InitAI(3, this.GetModel<ITimeTrialModel>().SelectInfo.Value.times, 
             this.GetSystem<IPlayerManagerSystem>().SelfPlayer.GetComponent<Transform>().position + new Vector3(4, 0, 0), 
@@ -49,12 +51,12 @@ public class TimeTrialGameUI : MonoBehaviour, IController {
         this.GetSystem<IPlayerManagerSystem>().SelfPlayer.isLockSpeed = true;
         if (this.GetModel<IGameModel>().StandAlone) {
             WarningAlertInfo alertInfo = new WarningAlertInfo("Game Over");
-            this.SendCommand(new ShowPageCommand(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
             Util.DelayExecuteWithSecond(2.0f, () => {
                 this.SendCommand(new LoadSceneCommand(SceneID.Index));
             });           
         } else {
-            this.SendCommand(new ShowPageCommand(UIPageType.GameResultUI, UILevelType.UIPage));
+            UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.GameResultUI, UILevelType.UIPage));
         }
     }
 

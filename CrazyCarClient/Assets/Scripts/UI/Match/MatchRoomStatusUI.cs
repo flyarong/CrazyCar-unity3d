@@ -46,11 +46,11 @@ public class MatchRoomStatusUI : MonoBehaviour, IController {
                     this.GetSystem<IMatchRoomSystem>().MatchRoomStart();
                 } else {
                     WarningAlertInfo alertInfo = new WarningAlertInfo("This map requires all player vehicles to be able to wade");
-                    this.SendCommand(new ShowPageCommand(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
+                    UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
                 }
             } else {
                 WarningAlertInfo alertInfo = new WarningAlertInfo("Other players are not in position");
-                this.SendCommand(new ShowPageCommand(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
+                UIController.Instance.ShowPage(new ShowPageInfo(UIPageType.WarningAlert, UILevelType.Alart, alertInfo));
             }  
         });
 
@@ -91,22 +91,20 @@ public class MatchRoomStatusUI : MonoBehaviour, IController {
         if (getRoomStatusCor != null) {
             StopCoroutine(getRoomStatusCor);
         }
-        this.GetSystem<INetworkSystem>().CloseConnect();
+        this.GetSystem<IMatchRoomSystem>().MatchRoomClose();
         gameObject.SetActiveFast(false);
     }
 
-    private void OnMatchRoomStart(MatchRoomStartEvent e) {
+    private async void OnMatchRoomStart(MatchRoomStartEvent e) {
         if (getRoomStatusCor != null) {
             StopCoroutine(getRoomStatusCor);
         }
         var matchInfo = this.GetModel<IMatchModel>().SelectInfo;
-        this.GetSystem<INetworkSystem>().EnterRoom(GameType.Match, matchInfo.Value.cid, () => {
+        bool result = await this.GetSystem<INetworkSystem>().EnterRoom(GameType.Match, matchInfo.Value.cid);
+        if (result) {
+            this.GetSystem<IMatchRoomSystem>().MatchRoomClose();
             this.SendCommand(new EnterMatchCommand(matchInfo));
-        });
-    }
-
-    private void OnDestroy() {
-        this.GetSystem<INetworkSystem>().CloseConnect();
+        }
     }
 
     public IArchitecture GetArchitecture() {

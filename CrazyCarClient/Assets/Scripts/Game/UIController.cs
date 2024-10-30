@@ -35,82 +35,81 @@ public enum UIPageType {
 }
 
 public enum UILevelType {
-    Main = 0,
+    Prepare = 0,
+    Main ,
     UIPage,
     Popup,
     Alart,
     Debug
 }
 
-public class UIController : MonoBehaviour, IController {
+public class UIController : PersistentMonoSingleton<UIController>, IController {
     public Transform[] levles;
     private Dictionary<UIPageType, GameObject> pagesDict = new Dictionary<UIPageType, GameObject>();
     private Dictionary<UILevelType, LinkedList<UIPageType>> pagesGroup = new Dictionary<UILevelType, LinkedList<UIPageType>>();
-    private readonly string basePageUrl = "Assets/Prefabs/UIPage/";
 
     private void Awake() {
-        this.RegisterEvent<HidePageEvent>(OnHidePage).UnRegisterWhenGameObjectDestroyed(gameObject);
-        this.RegisterEvent<ShowPageEvent>(OnShowPage).UnRegisterWhenGameObjectDestroyed(gameObject);
-        this.RegisterEvent<HidePageByLevelEvent>(OnHidePageByLevel).UnRegisterWhenGameObjectDestroyed(gameObject);
-        this.RegisterEvent<PrepareUIEvent>(OnPrepareUI).UnRegisterWhenGameObjectDestroyed(gameObject);
-        
-        DontDestroyOnLoad(gameObject);
+        base.Awake();
     }
 
-    private void OnPrepareUI(PrepareUIEvent obj) {
+    public async UniTask InitUI() {
         this.GetSystem<IGuidanceSystem>().UIControllerCanvas = GetComponent<Canvas>();
         foreach (UILevelType value in Enum.GetValues(typeof(UILevelType))) {
-            pagesGroup.Add(value, new LinkedList<UIPageType>());
+            pagesGroup[value] = new LinkedList<UIPageType>();
         }
-        // loading 的特殊性，可能还未准备好，就会被关闭，所以提前准备
-        ShowPageEvent e = new ShowPageEvent(UIPageType.LoadingUI, UILevelType.Main);
-        OnShowPage(e);
     }
 
-    private void OnHidePage(HidePageEvent e) {
-        if (!pagesDict.ContainsKey(e.pageType)) {
-            Debug.Log("Not Exist Page " + e.pageType);
+    public void HidePage(UIPageType pageType) {
+        if (!pagesDict.ContainsKey(pageType)) {
+            Debug.Log("Not Exist Page " + pageType);
             return;
         }
 
-        pagesDict[e.pageType].SetActiveFast(false);
+        pagesDict[pageType].SetActiveFast(false);
+    }
+
+    public void ShowPage(ShowPageInfo info) {
+        ShowPageAsync(info).Forget();
     }
 
     // 根据对应页面类型显示页面 如果没有页面则创建 如果有页面则调取并active为true 第二个参数是是否关闭其他开启界面
-    private void OnShowPage(ShowPageEvent e) {
-        if (e.closeOther) {
+    public async UniTask<bool> ShowPageAsync(ShowPageInfo info) {
+        if (info.closeOther) {
             foreach (var kv in pagesDict) {
                 kv.Value.SetActiveFast(false);
             }
         }
 
-        if (pagesDict.ContainsKey(e.pageType) && pagesGroup[e.levelType].Contains(e.pageType)) {
+        if (pagesDict.ContainsKey(info.pageType) && pagesGroup[info.levelType].Contains(info.pageType)) {
             // 当前页面还在原来分组
-            pagesDict[e.pageType].SetActiveFast(true);
-            SetPageInfo(e);
-        } else if (pagesDict.ContainsKey(e.pageType) && !pagesGroup[e.levelType].Contains(e.pageType)) {
+            pagesDict[info.pageType].SetActiveFast(true);
+            SetPageInfo(info);
+        } else if (pagesDict.ContainsKey(info.pageType) && !pagesGroup[info.levelType].Contains(info.pageType)) {
             // 当前页面还在不在原来分组
-            pagesDict[e.pageType].transform.SetParent(levles[(int)e.levelType], false);
-            pagesGroup[GetGroupByPageType(e.pageType)].Remove(e.pageType);
-            pagesGroup[e.levelType].AddLast(e.pageType);
-            SetPageInfo(e);
+            pagesDict[info.pageType].transform.SetParent(levles[(int)info.levelType], false);
+            pagesDict[info.pageType].SetActiveFast(true);
+            pagesGroup[GetGroupByPageType(info.pageType)].Remove(info.pageType);
+            pagesGroup[info.levelType].AddLast(info.pageType);
+            SetPageInfo(info);
         } else {
-            string pageUrl = GetPageUrlByType(e.pageType);
-            this.GetSystem<IAddressableSystem>().LoadAssetAsync<GameObject>(pageUrl, (obj) => {
-                if (obj.Status == AsyncOperationStatus.Succeeded) {
-                    GameObject page = Instantiate(obj.Result);
-                    page.transform.SetParent(levles[(int)e.levelType], false);
-                    pagesDict[e.pageType] = page;
-                    pagesGroup[e.levelType].AddLast(e.pageType);
-                    SetPageInfo(e);
-                } else {
-                    Debug.LogError($"Load {e.pageType} Page Failed");
-                }
-            }).Forget();
+            string pageUrl = GetPageUrlByType(info.pageType);
+            var obj = await this.GetSystem<IAddressableSystem>().LoadAssetAsync<GameObject>(pageUrl);
+            if (obj.Status == AsyncOperationStatus.Succeeded) {
+                GameObject page = Instantiate(obj.Result);
+                page.transform.SetParent(levles[(int)info.levelType], false);
+                pagesDict[info.pageType] = page;
+                pagesGroup[info.levelType].AddLast(info.pageType);
+                SetPageInfo(info);
+                return true;
+            } else {
+                Debug.LogError($"Load {info.pageType} Page Failed");
+                return false;
+            }
         }
+        return true;
     }
 
-    private void SetPageInfo(ShowPageEvent e) {
+    private void SetPageInfo(ShowPageInfo e) {
         UIPenal penal = pagesDict[e.pageType].GetComponent<UIPenal>();
         if (e.data != null && penal != null) {
             penal.InitData(e.data);
@@ -128,15 +127,15 @@ public class UIController : MonoBehaviour, IController {
         return UILevelType.Main;
     }
     
-    private void OnHidePageByLevel(HidePageByLevelEvent e) {
-        foreach (var kv in pagesGroup[e.mLevelType]) {
+    public void HidePageByLevel(UILevelType levelType) {
+        foreach (var kv in pagesGroup[levelType]) {
             if (pagesDict.ContainsKey(kv)) {
                 pagesDict[kv].SetActiveFast(false);
             }
         }
     }
 
-    private void DestoryPageByLevel(UILevelType levelType) {
+    public void DestoryPageByLevel(UILevelType levelType) {
         foreach (var kv in pagesGroup[levelType]) {
             if (pagesDict.ContainsKey(kv)) {
                 Destroy(pagesDict[kv]);
@@ -179,7 +178,7 @@ public class UIController : MonoBehaviour, IController {
 
     // 查找Resources中的路径
     private string GetPageUrlByType(UIPageType type) {
-        return basePageUrl + type.ToString() + ".prefab";
+        return Util.basePageUrl + type.ToString() + Util.pageSuffix;
     }
 
     private void OnDestroy() {
